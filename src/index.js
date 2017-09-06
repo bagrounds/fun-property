@@ -24,7 +24,8 @@
     identity: identity,
     leftIdentity: leftIdentity,
     rightIdentity: rightIdentity,
-    closed: closed
+    closed: closed,
+    associative: associative
   }
 
   var guards = {
@@ -130,6 +131,16 @@
       ]),
       type.bool
     ),
+    associative: guarded(
+      type.tuple([
+        type.vector(3),
+        type.hasFields({
+          op: type.fun,
+          equal: type.fun
+        })
+      ]),
+      type.bool
+    ),
     identity: guarded(
       type.tuple([
         type.any,
@@ -196,7 +207,7 @@
    * @param {Function} instance.inverse - x -> x
    * @param {Function} instance.equal - (x, x) -> bool
    *
-   * @return {Boolean} if (() <> x) = x
+   * @return {Boolean} if instance is a commutative group
    */
   function abelianGroup (xs, instance) {
     return predicate.and(
@@ -315,7 +326,7 @@
    * @param {Function} instance.unit - () -> x
    * @param {Function} instance.equal - (x, x) -> bool
    *
-   * @return {Boolean} if instance forms a monoid with op and unit
+   * @return {Boolean} if instance is a semigroup with an identity
    */
   function monoid (xs, instance) {
     return predicate.and(
@@ -385,14 +396,31 @@
    * @param {Function} instance.op - (x, x) -> x
    * @param {Function} instance.equal - (x, x) -> bool
    *
-   * @return {Boolean} if ((x1 <> x2) <> x3) = (x1 <> (x2 <> x3))
+   * @return {Boolean} if instance is associative and closed
    */
   function semigroup (xs, instance) {
-    return closed(xs.slice(0, 2), instance) &&
-      instance.equal(
-        instance.op(instance.op(xs[0], xs[1]), xs[2]),
-        instance.op(xs[0], instance.op(xs[1], xs[2]))
-      )
+    return predicate.and(
+      closed.bind(null, xs.slice(0, 2)),
+      associative.bind(null, xs)
+    )(instance)
+  }
+
+  /**
+   *
+   * @function module:fun-property.associative
+   *
+   * @param {Array} xs - 3 inputs to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if ((x1 <> x2) <> x3) = (x1 <> (x2 <> x3))
+   */
+  function associative (xs, instance) {
+    return instance.equal(
+      instance.op(instance.op(xs[0], xs[1]), xs[2]),
+      instance.op(xs[0], instance.op(xs[1], xs[2]))
+    )
   }
 })()
 
