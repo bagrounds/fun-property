@@ -1,0 +1,56 @@
+{
+  "name": "fun-property",
+  "version": "0.1.0",
+  "description": "Functions for determining properties of modules",
+  "main": "src/index.js",
+  "browser": "dist/bundle.js",
+  "scripts": {
+    "pretest": "npm run lint",
+    "test": "tap -Rtap --coverage-report=text-summary ./test/index.js",
+    "coverage": "tap --coverage-report=lcov ./test/index.js",
+    "predependencies": "mkdir -p img",
+    "dependencies": "madge src --image img/dependencies.svg -x 'public|test|coverage|docs' --include-npm",
+    "postdependencies": "npm run dependencies-test",
+    "dependencies-test": "madge . --image img/dependencies-test.svg -x 'dist|public|coverage|docs' --include-npm",
+    "pages-index": "showdown makehtml -i README.md -o public/index.html",
+    "pages": "./script/pages.sh",
+    "lint": "eslint --ignore-path .gitignore --fix . --ignore-pattern dist",
+    "predocument": "rm -rf docs",
+    "document": "jsdoc -c .jsdoc.json",
+    "browserify": "browserify dist/entry.js --no-bf | uglifyjs > dist/bundle.js",
+    "readme": "cat readme/* > README.md",
+    "next-update": "next-update -k true --tldr"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/bagrounds/fun-property.git"
+  },
+  "author": "bagrounds@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://gitlab.com/bagrounds/fun-property/issues"
+  },
+  "homepage": "https://gitlab.com/bagrounds/fun-property#README",
+  "devDependencies": {
+    "browserify": "14.4.0",
+    "docdash": "^0.4.0",
+    "eslint": "4.6.1",
+    "fun-arrange": "^0.1.4",
+    "fun-array": "^0.11.0",
+    "fun-generator": "^0.2.0",
+    "fun-test": "^0.24.1",
+    "fun-test-runner": "^0.9.1",
+    "jsdoc": "3.5.4",
+    "madge": "2.2.0",
+    "next-update": "^3.5.3",
+    "tap": "10.7.2",
+    "uglify-js": "3.0.28"
+  },
+  "dependencies": {
+    "fun-function": "^0.9.1",
+    "fun-object": "^0.6.3",
+    "fun-type": "^0.6.2",
+    "fun-predicate": "^0.16.0",
+    "guarded": "^0.7.3"
+  }
+}

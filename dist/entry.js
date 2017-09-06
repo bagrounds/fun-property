@@ -1,0 +1,2 @@
+funProperty = require('../src')
+
