@@ -2,6 +2,8 @@
   'use strict'
 
   /* imports */
+  var scalar = require('fun-scalar')
+  var fn = require('fun-function')
   var predicate = require('fun-predicate')
   var object = require('fun-object')
   var funTest = require('fun-test')
@@ -9,6 +11,15 @@
   var array = require('fun-array')
   var generate = require('fun-generator')
   var type = require('fun-type')
+
+  var integerFunctionComposition = {
+    op: fn.compose,
+    unit: fn.k(fn.id),
+    equal: function equal (f, g) {
+      var x = generate.integer(-100, 100, Math.random())
+      return f(x) === g(x)
+    }
+  }
 
   var integerMultiplication = {
     type: function int (a) {
@@ -71,7 +82,29 @@
     )
   }
 
+  function randomIntegerFunction () {
+    return generate.fn(
+      scalar.dot(generate.integer(-200, 200, Math.random())),
+      generate.integer(-100, 100),
+      fn.composeAll([
+        scalar.abs,
+        scalar.mod(1),
+        scalar.dot(Math.random()),
+        scalar.sum
+      ]),
+      Math.random()
+    )
+  }
+
   var equalityTests = [
+    [
+      [
+        array.map(randomIntegerFunction, array.index(3)),
+        integerFunctionComposition
+      ],
+      true,
+      'category'
+    ],
     [
       [
         [3, 4],

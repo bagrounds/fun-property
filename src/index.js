@@ -13,6 +13,7 @@
   var predicate = require('fun-predicate')
 
   var api = {
+    category: category,
     abelianGroup: abelianGroup,
     group: group,
     inverse: inverse,
@@ -35,6 +36,17 @@
         type.hasFields({
           type: type.fun,
           op: type.fun
+        })
+      ]),
+      type.bool
+    ),
+    category: guarded(
+      type.tuple([
+        type.vector(3),
+        type.hasFields({
+          op: type.fun,
+          unit: type.fun,
+          equal: type.fun
         })
       ]),
       type.bool
@@ -213,6 +225,25 @@
     return predicate.and(
       group.bind(null, xs),
       commutative.bind(null, xs.slice(0, 2))
+    )(instance)
+  }
+
+  /**
+   *
+   * @function module:fun-property.category
+   *
+   * @param {Array} xs - input to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.unit - () -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if instance is associative with an identity
+   */
+  function category (xs, instance) {
+    return predicate.and(
+      associative.bind(null, xs),
+      identity.bind(null, xs[0])
     )(instance)
   }
 
