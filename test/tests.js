@@ -12,6 +12,15 @@
   var generate = require('fun-generator')
   var type = require('fun-type')
 
+  var arrayMonoid = {
+    type: type.arrayOf(type.num),
+    op: array.concat,
+    unit: array.empty,
+    equal: array.equal(function (a, b) {
+      return a === b
+    })
+  }
+
   var integerFunctionComposition = {
     op: fn.compose,
     unit: fn.k(fn.id),
@@ -72,6 +81,15 @@
     }
   }
 
+  function randomIntArrays (n, m) {
+    return generate.arrayOf(
+      generate.arrayOf(generate.integer(-100, 100)),
+      array.index(3)
+        .map(fn.k(array.index(generate.integer(1, 5, Math.random()))))
+        .map(array.map(Math.random))
+    )
+  }
+
   function randomInts (n) {
     return array.map(
       generate.integer(-100, 100),
@@ -120,6 +138,14 @@
       ],
       true,
       'commutative'
+    ],
+    [
+      [
+        randomIntArrays(),
+        arrayMonoid
+      ],
+      true,
+      'monoid'
     ],
     [
       [
