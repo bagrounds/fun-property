@@ -222,39 +222,30 @@
    * @function module:fun-property.functor
    *
    * @param {Array} xs - inputs to test instance with
-   * @param {Object} i - to test
-   * @param {Function} instance.omap - fromCat => toCat
-   * @param {Function} instance.fmap - fromCat => toCat
+   * @param {Object} i - instance to test
+   * @param {Function} instance.omap - maps objects
+   * @param {Function} instance.fmap - maps functions
    * @param {Function} instance.fromCat - source category
    * @param {Function} instance.toCat - destination category
-   * @param {Function} instance.op - (x, x) -> x
    *
-   * @return {Boolean} if (x, x) -> x
+   * @return {Boolean} if i is a functor mapping fromCat -> toCat
    */
   function functor (xs, i) {
-    function id (cat) {
-      return cat.op.bind(null, cat.unit())
-    }
+    var id = i.fromCat.op.bind(null, i.fromCat.unit())
+    var f = i.fromCat.op.bind(null, xs[1])
+    var g = i.fromCat.op.bind(null, xs[2])
 
     return equalFor(
       i.toCat.equal,
       xs[0],
-      fn.compose(i.fmap(id(i.fromCat)), i.omap),
-      fn.compose(i.omap, id(i.fromCat))
+      fn.compose(i.fmap(id), i.omap),
+      fn.compose(i.omap, id)
     ) &&
     equalFor(
       i.toCat.equal,
       xs[0],
-      fn.composeAll([
-        i.fmap(i.fromCat.op.bind(null, xs[2])),
-        i.fmap(i.fromCat.op.bind(null, xs[1])),
-        i.omap
-      ]),
-      fn.composeAll([
-        i.omap,
-        i.fromCat.op.bind(null, xs[2]),
-        i.fromCat.op.bind(null, xs[1])
-      ])
+      fn.composeAll([i.fmap(f), i.fmap(g), i.omap]),
+      fn.composeAll([i.omap, f, g])
     )
   }
 

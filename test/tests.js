@@ -19,7 +19,7 @@
     equal: array.equal(scalar.equal)
   }
 
-  var integerFunctionComposition = {
+  var intFunComposition = {
     op: fn.compose,
     unit: fn.k(fn.id),
     equal: function equal (f, g) {
@@ -64,12 +64,15 @@
     unit: fn.k(0)
   }
 
-  function randomIntArrays (n, m) {
+  function randomIntArrays (max, n) {
     return generate.arrayOf(
       generate.arrayOf(generate.integer(-100, 100)),
-      array.index(3)
-        .map(fn.k(array.index(generate.integer(1, 5, Math.random()))))
-        .map(array.map(Math.random))
+      array.index(n)
+        .map(fn.composeAll([
+          array.map(Math.random),
+          fn.compose(array.index, generate.integer(1, max)),
+          Math.random
+        ]))
     )
   }
 
@@ -83,7 +86,7 @@
     )
   }
 
-  function randomIntegerFunction () {
+  function randIntFun () {
     return generate.fn(
       scalar.dot(generate.integer(-200, 200, Math.random())),
       generate.integer(-100, 100),
@@ -99,65 +102,20 @@
 
   var equalityTests = [
     [
-      [
-        [
-          randomInts(3),
-          randomInts(5),
-          randomInts(7)
-        ],
-        arrayConcatToIntAddFunctor
-      ],
+      [randomIntArrays(10, 3), arrayConcatToIntAddFunctor],
       true,
       'functor'
     ],
     [
-      [
-        array.map(randomIntegerFunction, array.index(3)),
-        integerFunctionComposition
-      ],
+      [array.map(randIntFun, array.index(3)), intFunComposition],
       true,
       'category'
     ],
-    [
-      [
-        [3, 4],
-        integerSubtraction
-      ],
-      false,
-      'commutative'
-    ],
-    [
-      [
-        randomInts(2),
-        integerMultiplication
-      ],
-      true,
-      'commutative'
-    ],
-    [
-      [
-        randomIntArrays(),
-        arrayMonoid
-      ],
-      true,
-      'monoid'
-    ],
-    [
-      [
-        randomInts(3),
-        integerMultiplication
-      ],
-      true,
-      'monoid'
-    ],
-    [
-      [
-        randomInts(3),
-        integerAddition
-      ],
-      true,
-      'abelianGroup'
-    ]
+    [[[3, 4], integerSubtraction], false, 'commutative'],
+    [[randomInts(2), integerMultiplication], true, 'commutative'],
+    [[randomIntArrays(10, 3), arrayMonoid], true, 'monoid'],
+    [[randomInts(3), integerMultiplication], true, 'monoid'],
+    [[randomInts(3), integerAddition], true, 'abelianGroup']
   ].map(arrange({ inputs: 0, predicate: 1, contra: 2 }))
     .map(object.ap({
       predicate: predicate.equalDeep,
