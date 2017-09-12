@@ -13,6 +13,7 @@
   var predicate = require('fun-predicate')
 
   var api = {
+    functor: functor,
     category: category,
     abelianGroup: abelianGroup,
     group: group,
@@ -30,6 +31,26 @@
   }
 
   var guards = {
+    functor: guarded(
+      type.tuple([
+        type.vector(3),
+        type.hasFields({
+          omap: type.fun,
+          fmap: type.fun,
+          fromCat: type.hasFields({
+            op: type.fun,
+            unit: type.fun,
+            equal: type.fun
+          }),
+          toCat: type.hasFields({
+            op: type.fun,
+            unit: type.fun,
+            equal: type.fun
+          })
+        })
+      ]),
+      type.bool
+    ),
     closed: guarded(
       type.tuple([
         type.vector(2),
@@ -190,6 +211,52 @@
 
   /* exports */
   module.exports = object.map(fn.curry, object.ap(guards, api))
+
+  // eslint-disable-next-line max-params
+  function equalFor (eq, i, f1, f2) {
+    return fn.lift(eq)(f1)(f2)(i)
+  }
+
+  /**
+   *
+   * @function module:fun-property.functor
+   *
+   * @param {Array} xs - inputs to test instance with
+   * @param {Object} i - to test
+   * @param {Function} instance.omap - fromCat => toCat
+   * @param {Function} instance.fmap - fromCat => toCat
+   * @param {Function} instance.fromCat - source category
+   * @param {Function} instance.toCat - destination category
+   * @param {Function} instance.op - (x, x) -> x
+   *
+   * @return {Boolean} if (x, x) -> x
+   */
+  function functor (xs, i) {
+    function id (cat) {
+      return cat.op.bind(null, cat.unit())
+    }
+
+    return equalFor(
+      i.toCat.equal,
+      xs[0],
+      fn.compose(i.fmap(id(i.fromCat)), i.omap),
+      fn.compose(i.omap, id(i.fromCat))
+    ) &&
+    equalFor(
+      i.toCat.equal,
+      xs[0],
+      fn.composeAll([
+        i.fmap(i.fromCat.op.bind(null, xs[2])),
+        i.fmap(i.fromCat.op.bind(null, xs[1])),
+        i.omap
+      ]),
+      fn.composeAll([
+        i.omap,
+        i.fromCat.op.bind(null, xs[2]),
+        i.fromCat.op.bind(null, xs[1])
+      ])
+    )
+  }
 
   /**
    *

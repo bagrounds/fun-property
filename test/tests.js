@@ -16,9 +16,7 @@
     type: type.arrayOf(type.num),
     op: array.concat,
     unit: array.empty,
-    equal: array.equal(function (a, b) {
-      return a === b
-    })
+    equal: array.equal(scalar.equal)
   }
 
   var integerFunctionComposition = {
@@ -30,55 +28,40 @@
     }
   }
 
+  function isInteger (a) {
+    return type.num(a) &&
+      Math.floor(a) === a
+  }
+
   var integerMultiplication = {
-    type: function int (a) {
-      return type.num(a) &&
-        Math.floor(a) === a
-    },
-    op: function mul (a, b) {
-      return a * b
-    },
-    equal: function equal (a, b) {
-      return a === b
-    },
-    unit: function one () {
-      return 1
-    }
+    type: isInteger,
+    op: scalar.dot,
+    equal: scalar.equal,
+    unit: fn.k(1)
   }
 
   var integerAddition = {
-    type: function int (a) {
-      return type.num(a) &&
-        Math.floor(a) === a
-    },
-    op: function add (a, b) {
-      return a + b
-    },
-    inverse: function equal (a) {
-      return -a
-    },
-    equal: function equal (a, b) {
-      return a === b
-    },
-    unit: function zero () {
-      return 0
-    }
+    type: isInteger,
+    op: scalar.sum,
+    inverse: scalar.neg,
+    equal: scalar.equal,
+    unit: fn.k(0)
+  }
+
+  var arrayConcatToIntAddFunctor = {
+    omap: array.fold(integerAddition.op, integerAddition.unit()),
+    fmap: fn.curry(function (f, i) {
+      return array.fold(integerAddition.op, integerAddition.unit(), f(i))
+    }),
+    fromCat: arrayMonoid,
+    toCat: integerAddition
   }
 
   var integerSubtraction = {
-    type: function int (a) {
-      return type.num(a) &&
-        Math.floor(a) === a
-    },
-    op: function sub (a, b) {
-      return a - b
-    },
-    equal: function equal (a, b) {
-      return a === b
-    },
-    unit: function zero () {
-      return 0
-    }
+    type: isInteger,
+    op: scalar.sub,
+    equal: predicate.equal,
+    unit: fn.k(0)
   }
 
   function randomIntArrays (n, m) {
@@ -115,6 +98,18 @@
   }
 
   var equalityTests = [
+    [
+      [
+        [
+          randomInts(3),
+          randomInts(5),
+          randomInts(7)
+        ],
+        arrayConcatToIntAddFunctor
+      ],
+      true,
+      'functor'
+    ],
     [
       [
         array.map(randomIntegerFunction, array.index(3)),
