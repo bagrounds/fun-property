@@ -27,7 +27,8 @@
     leftIdentity: leftIdentity,
     rightIdentity: rightIdentity,
     closed: closed,
-    associative: associative
+    associative: associative,
+    idempotent: idempotent
   }
 
   var guards = {
@@ -202,6 +203,16 @@
         type.hasFields({
           op: type.fun,
           unit: type.fun,
+          equal: type.fun
+        })
+      ]),
+      type.bool
+    ),
+    idempotent: guarded(
+      type.tuple([
+        type.any,
+        type.hasFields({
+          f: type.fun,
           equal: type.fun
         })
       ]),
@@ -509,6 +520,26 @@
     return instance.equal(
       instance.op(instance.op(xs[0], xs[1]), xs[2]),
       instance.op(xs[0], instance.op(xs[1], xs[2]))
+    )
+  }
+
+  /**
+   *
+   * @function module:fun-property.idempotent
+   *
+   * @param {*} x - input to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.f - x -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if f(x) = f(f(x))
+   */
+  function idempotent (x, instance) {
+    return equalFor(
+      instance.equal,
+      x,
+      instance.f,
+      fn.iterate(2, instance.f)
     )
   }
 })()

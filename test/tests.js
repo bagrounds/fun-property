@@ -64,6 +64,21 @@
     unit: fn.k(0)
   }
 
+  var identityFun = {
+    f: fn.id,
+    equal: predicate.equal
+  }
+
+  var mul1 = {
+    f: scalar.dot(1),
+    equal: predicate.equal
+  }
+
+  var add0 = {
+    f: scalar.sum(0),
+    equal: predicate.equal
+  }
+
   function randomIntArrays (max, n) {
     return generate.arrayOf(
       generate.arrayOf(generate.integer(-100, 100)),
@@ -115,7 +130,10 @@
     [[randomInts(2), integerMultiplication], true, 'commutative'],
     [[randomIntArrays(10, 3), arrayMonoid], true, 'monoid'],
     [[randomInts(3), integerMultiplication], true, 'monoid'],
-    [[randomInts(3), integerAddition], true, 'abelianGroup']
+    [[randomInts(3), integerAddition], true, 'abelianGroup'],
+    [[randomInts(1), identityFun], true, 'idempotent'],
+    [[randomInts(1)[0], mul1], true, 'idempotent'],
+    [[randomInts(1)[0], add0], true, 'idempotent']
   ].map(arrange({ inputs: 0, predicate: 1, contra: 2 }))
     .map(object.ap({
       predicate: predicate.equalDeep,
