@@ -1,46 +1,43 @@
-;(function () {
+;(() => {
   'use strict'
 
   /* imports */
-  var scalar = require('fun-scalar')
-  var fn = require('fun-function')
-  var predicate = require('fun-predicate')
-  var object = require('fun-object')
-  var funTest = require('fun-test')
-  var arrange = require('fun-arrange')
-  var array = require('fun-array')
-  var generate = require('fun-generator')
-  var type = require('fun-type')
+  const scalar = require('fun-scalar')
+  const fn = require('fun-function')
+  const predicate = require('fun-predicate')
+  const object = require('fun-object')
+  const funTest = require('fun-test')
+  const arrange = require('fun-arrange')
+  const array = require('fun-array')
+  const generate = require('fun-generator')
+  const type = require('fun-type')
 
-  var arrayMonoid = {
+  const arrayMonoid = {
     type: type.arrayOf(type.num),
     op: array.concat,
     unit: array.empty,
     equal: array.equal(scalar.equal)
   }
 
-  var intFunComposition = {
+  const intFunComposition = {
     op: fn.compose,
     unit: fn.k(fn.id),
-    equal: function equal (f, g) {
-      var x = generate.integer(-100, 100, Math.random())
+    equal: (f, g) => {
+      const x = generate.integer(-100, 100, Math.random())
       return f(x) === g(x)
     }
   }
 
-  function isInteger (a) {
-    return type.num(a) &&
-      Math.floor(a) === a
-  }
+  const isInteger = a => type.num(a) && Math.floor(a) === a
 
-  var integerMultiplication = {
+  const integerMultiplication = {
     type: isInteger,
     op: scalar.dot,
     equal: scalar.equal,
     unit: fn.k(1)
   }
 
-  var integerAddition = {
+  const integerAddition = {
     type: isInteger,
     op: scalar.sum,
     inverse: scalar.neg,
@@ -48,74 +45,71 @@
     unit: fn.k(0)
   }
 
-  var arrayConcatToIntAddFunctor = {
+  const arrayConcatToIntAddFunctor = {
     omap: array.fold(integerAddition.op, integerAddition.unit()),
-    fmap: fn.curry(function (f, i) {
-      return array.fold(integerAddition.op, integerAddition.unit(), f(i))
-    }),
+    fmap: fn.compose(array.fold(integerAddition.op, integerAddition.unit())),
     fromCat: arrayMonoid,
     toCat: integerAddition
   }
 
-  var integerSubtraction = {
+  const integerSubtraction = {
     type: isInteger,
     op: scalar.sub,
     equal: predicate.equal,
     unit: fn.k(0)
   }
 
-  var identityFun = {
+  const identityFun = {
     f: fn.id,
     equal: predicate.equal
   }
 
-  var mul1 = {
+  const mul1 = {
     f: scalar.dot(1),
     equal: predicate.equal
   }
 
-  var add0 = {
+  const add0 = {
     f: scalar.sum(0),
     equal: predicate.equal
   }
 
-  function randomIntArrays (max, n) {
-    return generate.arrayOf(
-      generate.arrayOf(generate.integer(-100, 100)),
-      array.index(n)
-        .map(fn.composeAll([
-          array.map(Math.random),
-          fn.compose(array.index, generate.integer(1, max)),
-          Math.random
-        ]))
-    )
+  const addSelf = x => x + x
+
+  const addSelfMul2 = {
+    f1: addSelf,
+    f2: scalar.dot(2),
+    equal: predicate.equal
   }
 
-  function randomInts (n) {
-    return array.map(
-      generate.integer(-100, 100),
-      array.map(
-        Math.random,
-        array.index(n)
-      )
-    )
-  }
+  const randomIntArrays = (max, n) => generate.arrayOf(
+    generate.arrayOf(generate.integer(-100, 100)),
+    array.index(n)
+      .map(fn.composeAll([
+        array.map(Math.random),
+        fn.compose(array.index, generate.integer(1, max)),
+        Math.random
+      ]))
+  )
 
-  function randIntFun () {
-    return generate.fn(
-      scalar.dot(generate.integer(-200, 200, Math.random())),
-      generate.integer(-100, 100),
-      fn.composeAll([
-        scalar.abs,
-        scalar.mod(1),
-        scalar.dot(Math.random()),
-        scalar.sum
-      ]),
-      Math.random()
-    )
-  }
+  const randomInts = n => array.map(
+    generate.integer(-100, 100),
+    array.map(Math.random, array.index(n))
+  )
 
-  var equalityTests = [
+  const randIntFun = () => generate.fn(
+    scalar.dot(generate.integer(-200, 200, Math.random())),
+    generate.integer(-100, 100),
+    fn.composeAll([
+      scalar.abs,
+      scalar.mod(1),
+      scalar.dot(Math.random()),
+      scalar.sum
+    ]),
+    Math.random()
+  )
+
+  const equalityTests = [
     [
       [randomIntArrays(10, 3), arrayConcatToIntAddFunctor],
       true,
@@ -128,12 +122,23 @@
     ],
     [[[3, 4], integerSubtraction], false, 'commutative'],
     [[randomInts(2), integerMultiplication], true, 'commutative'],
+    [[randomIntArrays(10, 3), arrayMonoid], true, 'semigroup'],
     [[randomIntArrays(10, 3), arrayMonoid], true, 'monoid'],
     [[randomInts(3), integerMultiplication], true, 'monoid'],
+    [[randomInts(3), integerMultiplication], true, 'associative'],
+    [[randomInts(2), integerAddition], true, 'closed'],
     [[randomInts(3), integerAddition], true, 'abelianGroup'],
+    [[randomInts(3), integerAddition], true, 'group'],
+    [[randomInts(1), integerAddition], true, 'identity'],
+    [[randomInts(1), integerAddition], true, 'leftIdentity'],
+    [[randomInts(1), integerAddition], true, 'rightIdentity'],
+    [[randomInts(1), integerAddition], true, 'inverse'],
+    [[randomInts(1), integerAddition], true, 'leftInverse'],
+    [[randomInts(1), integerAddition], true, 'rightInverse'],
     [[randomInts(1), identityFun], true, 'idempotent'],
-    [[randomInts(1)[0], mul1], true, 'idempotent'],
-    [[randomInts(1)[0], add0], true, 'idempotent']
+    [[randomInts(1), mul1], true, 'idempotent'],
+    [[randomInts(1), add0], true, 'idempotent'],
+    [[randomInts(1), addSelfMul2], true, 'equalFor']
   ].map(arrange({ inputs: 0, predicate: 1, contra: 2 }))
     .map(object.ap({
       predicate: predicate.equalDeep,

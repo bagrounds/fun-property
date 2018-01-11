@@ -2,263 +2,45 @@
  *
  * @module fun-property
  */
-;(function () {
+;(() => {
   'use strict'
 
   /* imports */
-  var fn = require('fun-function')
-  var type = require('fun-type')
-  var object = require('fun-object')
-  var guarded = require('guarded')
-  var predicate = require('fun-predicate')
+  const { apply, lift, curry, compose, composeAll } = require('fun-function')
+  const { arrayOf, hasFields, vector, fun, bool, tuple } = require('fun-type')
+  const { map, ap } = require('fun-object')
+  const { inputs, output } = require('guarded')
+  const { and, t } = require('fun-predicate')
 
-  var api = {
-    functor: functor,
-    category: category,
-    abelianGroup: abelianGroup,
-    group: group,
-    inverse: inverse,
-    leftInverse: leftInverse,
-    rightInverse: rightInverse,
-    commutative: commutative,
-    monoid: monoid,
-    semigroup: semigroup,
-    identity: identity,
-    leftIdentity: leftIdentity,
-    rightIdentity: rightIdentity,
-    closed: closed,
-    associative: associative,
-    idempotent: idempotent
-  }
-
-  var guards = {
-    functor: guarded(
-      type.tuple([
-        type.vector(3),
-        type.hasFields({
-          omap: type.fun,
-          fmap: type.fun,
-          fromCat: type.hasFields({
-            op: type.fun,
-            unit: type.fun,
-            equal: type.fun
-          }),
-          toCat: type.hasFields({
-            op: type.fun,
-            unit: type.fun,
-            equal: type.fun
-          })
-        })
-      ]),
-      type.bool
-    ),
-    closed: guarded(
-      type.tuple([
-        type.vector(2),
-        type.hasFields({
-          type: type.fun,
-          op: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    category: guarded(
-      type.tuple([
-        type.vector(3),
-        type.hasFields({
-          op: type.fun,
-          unit: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    abelianGroup: guarded(
-      type.tuple([
-        type.vector(3),
-        type.hasFields({
-          type: type.fun,
-          op: type.fun,
-          unit: type.fun,
-          inverse: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    group: guarded(
-      type.tuple([
-        type.vector(3),
-        type.hasFields({
-          type: type.fun,
-          op: type.fun,
-          unit: type.fun,
-          inverse: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    inverse: guarded(
-      type.tuple([
-        type.any,
-        type.hasFields({
-          op: type.fun,
-          unit: type.fun,
-          inverse: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    leftInverse: guarded(
-      type.tuple([
-        type.any,
-        type.hasFields({
-          op: type.fun,
-          unit: type.fun,
-          inverse: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    rightInverse: guarded(
-      type.tuple([
-        type.any,
-        type.hasFields({
-          op: type.fun,
-          unit: type.fun,
-          inverse: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    commutative: guarded(
-      type.tuple([
-        type.vector(2),
-        type.hasFields({ op: type.fun, equal: type.fun })
-      ]),
-      type.bool
-    ),
-    monoid: guarded(
-      type.tuple([
-        type.vector(3),
-        type.hasFields({
-          type: type.fun,
-          op: type.fun,
-          unit: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    semigroup: guarded(
-      type.tuple([
-        type.vector(3),
-        type.hasFields({
-          type: type.fun,
-          op: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    associative: guarded(
-      type.tuple([
-        type.vector(3),
-        type.hasFields({
-          op: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    identity: guarded(
-      type.tuple([
-        type.any,
-        type.hasFields({
-          op: type.fun,
-          unit: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    leftIdentity: guarded(
-      type.tuple([
-        type.any,
-        type.hasFields({
-          op: type.fun,
-          unit: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    rightIdentity: guarded(
-      type.tuple([
-        type.any,
-        type.hasFields({
-          op: type.fun,
-          unit: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    ),
-    idempotent: guarded(
-      type.tuple([
-        type.any,
-        type.hasFields({
-          f: type.fun,
-          equal: type.fun
-        })
-      ]),
-      type.bool
-    )
-  }
-
-  /* exports */
-  module.exports = object.map(fn.curry, object.ap(guards, api))
-
-  // eslint-disable-next-line max-params
-  function equalFor (eq, i, f1, f2) {
-    return fn.lift(eq)(f1)(f2)(i)
-  }
+  const idOf = ({op, unit}) => curry(op)(unit())
 
   /**
    *
-   * @function module:fun-property.functor
+   * @function module:fun-property.equalFor
    *
    * @param {Array} xs - inputs to test instance with
-   * @param {Object} i - instance to test
-   * @param {Function} instance.omap - maps objects
-   * @param {Function} instance.fmap - maps functions
-   * @param {Function} instance.fromCat - source category
-   * @param {Function} instance.toCat - destination category
+   * @param {Object} instance - to test
+   * @param {Function} instance.equal - (a, b) -> bool
+   * @param {Function} instance.f1 - (...xs) -> y
+   * @param {Function} instance.f2 - (...xs) -> z
    *
-   * @return {Boolean} if i is a functor mapping fromCat -> toCat
+   * @return {Boolean} if f1(x) = f2(x)
    */
-  function functor (xs, i) {
-    var id = i.fromCat.op.bind(null, i.fromCat.unit())
-    var f = i.fromCat.op.bind(null, xs[1])
-    var g = i.fromCat.op.bind(null, xs[2])
+  const equalFor = (xs, {equal, f1, f2}) => apply(xs, lift(equal)(f1)(f2))
 
-    return equalFor(
-      i.toCat.equal,
-      xs[0],
-      fn.compose(i.fmap(id), i.omap),
-      fn.compose(i.omap, id)
-    ) &&
-    equalFor(
-      i.toCat.equal,
-      xs[0],
-      fn.composeAll([i.fmap(f), i.fmap(g), i.omap]),
-      fn.composeAll([i.omap, f, g])
-    )
-  }
+  /**
+   *
+   * @function module:fun-property.idempotent
+   *
+   * @param {Array} xs - input to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.f - x -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if f(x) = f(f(x))
+   */
+  const idempotent = (xs, {f, equal}) =>
+    equalFor(xs, { equal, f1: f, f2: compose(f, f) })
 
   /**
    *
@@ -271,31 +53,123 @@
    *
    * @return {Boolean} if (x, x) -> x
    */
-  function closed (xs, instance) {
-    return type.arrayOf(instance.type, xs) &&
-      instance.type(instance.op(xs[0], xs[1]))
-  }
+  const closed = ([x0, x1], {type, op}) => arrayOf(type, [x0, x1, op(x0, x1)])
 
   /**
    *
-   * @function module:fun-property.abelianGroup
+   * @function module:fun-property.associative
    *
-   * @param {Array} xs - inputs to test instance with
+   * @param {Array} xs - 3 inputs to test instance with
    * @param {Object} instance - to test
-   * @param {Function} instance.type - x -> bool
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if ((x1 <> x2) <> x3) = (x1 <> (x2 <> x3))
+   */
+  const associative = ([x0, x1, x2], {op, equal}) =>
+    equal(op(op(x0, x1), x2), op(x0, op(x1, x2)))
+
+  /**
+   *
+   * @function module:fun-property.commutative
+   *
+   * @param {Array} xs - 2 inputs to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if (x1 <> x2) = (x2 <> x1)
+   */
+  const commutative = ([x0, x1], {equal, op}) => equal(op(x0, x1), op(x1, x0))
+
+  /**
+   *
+   * @function module:fun-property.leftIdentity
+   *
+   * @param {Array} xs - 1 input to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.unit - () -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if (() <> x) = x
+   */
+  const leftIdentity = ([x], {op, unit, equal}) => equal(op(unit(), x), x)
+
+  /**
+   *
+   * @function module:fun-property.rightIdentity
+   *
+   * @param {Array} xs - 1 input to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.unit - () -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if (x <> ()) = x
+   */
+  const rightIdentity = ([x], {op, unit, equal}) => equal(op(x, unit()), x)
+
+  /**
+   *
+   * @function module:fun-property.identity
+   *
+   * @param {Array} xs - 1 input to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.unit - () -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if (() <> x) = (x <> ()) = x
+   */
+  const identity = and(leftIdentity, rightIdentity)
+
+  /**
+   *
+   * @function module:fun-property.leftInverse
+   *
+   * @param {Array} xs - 1 input to test instance with
+   * @param {Object} instance - to test
    * @param {Function} instance.op - (x, x) -> x
    * @param {Function} instance.unit - () -> x
    * @param {Function} instance.inverse - x -> x
    * @param {Function} instance.equal - (x, x) -> bool
    *
-   * @return {Boolean} if instance is a commutative group
+   * @return {Boolean} if (-x <> x) = ()
    */
-  function abelianGroup (xs, instance) {
-    return predicate.and(
-      group.bind(null, xs),
-      commutative.bind(null, xs.slice(0, 2))
-    )(instance)
-  }
+  const leftInverse = ([x], {op, unit, inverse, equal}) =>
+    equal(op(inverse(x), x), unit())
+
+  /**
+   *
+   * @function module:fun-property.rightInverse
+   *
+   * @param {Array} xs - 1 input to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.unit - () -> x
+   * @param {Function} instance.inverse - x -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if (x <> -x) = ()
+   */
+  const rightInverse = ([x], {op, unit, inverse, equal}) =>
+    equal(op(x, inverse(x)), unit())
+
+  /**
+   *
+   * @function module:fun-property.inverse
+   *
+   * @param {Array} xs - 1 input to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.unit - () -> x
+   * @param {Function} instance.inverse - x -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if (x <> -x) = (-x <> x) = x
+   */
+  const inverse = and(leftInverse, rightInverse)
 
   /**
    *
@@ -309,12 +183,36 @@
    *
    * @return {Boolean} if instance is associative with an identity
    */
-  function category (xs, instance) {
-    return predicate.and(
-      associative.bind(null, xs),
-      identity.bind(null, xs[0])
-    )(instance)
-  }
+  const category = and(associative, identity)
+
+  /**
+   *
+   * @function module:fun-property.semigroup
+   *
+   * @param {Array} xs - 3 inputs to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.type - x -> bool
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if instance is associative and closed
+   */
+  const semigroup = and(closed, associative)
+
+  /**
+   *
+   * @function module:fun-property.monoid
+   *
+   * @param {Array} xs - 3 input to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.type - x -> bool
+   * @param {Function} instance.op - (x, x) -> x
+   * @param {Function} instance.unit - () -> x
+   * @param {Function} instance.equal - (x, x) -> bool
+   *
+   * @return {Boolean} if instance is a semigroup with an identity
+   */
+  const monoid = and(semigroup, identity)
 
   /**
    *
@@ -330,217 +228,152 @@
    *
    * @return {Boolean} if instance is a monoid with an inverse
    */
-  function group (xs, instance) {
-    return predicate.and(
-      monoid.bind(null, xs),
-      inverse.bind(null, xs[0])
-    )(instance)
-  }
+  const group = and(monoid, inverse)
 
   /**
    *
-   * @function module:fun-property.inverse
+   * @function module:fun-property.abelianGroup
    *
-   * @param {*} x - input to test instance with
-   * @param {Object} instance - to test
-   * @param {Function} instance.op - (x, x) -> x
-   * @param {Function} instance.unit - () -> x
-   * @param {Function} instance.inverse - x -> x
-   * @param {Function} instance.equal - (x, x) -> bool
-   *
-   * @return {Boolean} if (x <> -x) = (-x <> x) = x
-   */
-  function inverse (x, instance) {
-    return predicate.and(
-      leftInverse.bind(null, x),
-      rightInverse.bind(null, x)
-    )(instance)
-  }
-
-  /**
-   *
-   * @function module:fun-property.rightInverse
-   *
-   * @param {*} x - input to test instance with
-   * @param {Object} instance - to test
-   * @param {Function} instance.op - (x, x) -> x
-   * @param {Function} instance.unit - () -> x
-   * @param {Function} instance.inverse - x -> x
-   * @param {Function} instance.equal - (x, x) -> bool
-   *
-   * @return {Boolean} if (x <> -x) = ()
-   */
-  function rightInverse (x, instance) {
-    return instance.equal(
-      instance.op(x, instance.inverse(x)),
-      instance.unit()
-    )
-  }
-
-  /**
-   *
-   * @function module:fun-property.leftInverse
-   *
-   * @param {*} x - input to test instance with
-   * @param {Object} instance - to test
-   * @param {Function} instance.op - (x, x) -> x
-   * @param {Function} instance.unit - () -> x
-   * @param {Function} instance.inverse - x -> x
-   * @param {Function} instance.equal - (x, x) -> bool
-   *
-   * @return {Boolean} if (-x <> x) = ()
-   */
-  function leftInverse (x, instance) {
-    return instance.equal(
-      instance.op(instance.inverse(x), x),
-      instance.unit()
-    )
-  }
-
-  /**
-   *
-   * @function module:fun-property.commutative
-   *
-   * @param {Array} xs - 2 inputs to test instance with
-   * @param {Object} instance - to test
-   * @param {Function} instance.op - (x, x) -> x
-   * @param {Function} instance.equal - (x, x) -> bool
-   *
-   * @return {Boolean} if (x1 <> x2) = (x2 <> x1)
-   */
-  function commutative (xs, instance) {
-    return instance.equal(
-      instance.op(xs[0], xs[1]),
-      instance.op(xs[1], xs[0])
-    )
-  }
-
-  /**
-   *
-   * @function module:fun-property.monoid
-   *
-   * @param {Array} xs - 3 input to test instance with
+   * @param {Array} xs - inputs to test instance with
    * @param {Object} instance - to test
    * @param {Function} instance.type - x -> bool
    * @param {Function} instance.op - (x, x) -> x
    * @param {Function} instance.unit - () -> x
+   * @param {Function} instance.inverse - x -> x
    * @param {Function} instance.equal - (x, x) -> bool
    *
-   * @return {Boolean} if instance is a semigroup with an identity
+   * @return {Boolean} if instance is a commutative group
    */
-  function monoid (xs, instance) {
-    return predicate.and(
-      semigroup.bind(null, xs),
-      identity.bind(null, xs[0])
-    )(instance)
-  }
+  const abelianGroup = and(group, commutative)
 
   /**
    *
-   * @function module:fun-property.identity
+   * @function module:fun-property.functor
    *
-   * @param {*} x - input to test instance with
+   * @param {Array} xs - inputs to test instance with
    * @param {Object} instance - to test
-   * @param {Function} instance.op - (x, x) -> x
-   * @param {Function} instance.unit - () -> x
-   * @param {Function} instance.equal - (x, x) -> bool
+   * @param {Function} instance.omap - maps objects
+   * @param {Function} instance.fmap - maps functions
+   * @param {Object} instance.fromCat - source category
+   * @param {Object} instance.toCat - destination category
    *
-   * @return {Boolean} if (() <> x) = (x <> ()) = x
+   * @return {Boolean} if i is a functor mapping fromCat -> toCat
    */
-  function identity (x, instance) {
-    return predicate.and(
-      leftIdentity.bind(null, x),
-      rightIdentity.bind(null, x)
-    )(instance)
-  }
+  const functor = ([x0, x1, x2], {omap, fmap, fromCat, toCat}) => ((id, f, g) =>
+    equalFor([x0], {equal: toCat.equal,
+      f1: compose(fmap(id), omap),
+      f2: compose(omap, id)
+    }) &&
+    equalFor([x0], {
+      equal: toCat.equal,
+      f1: composeAll([fmap(f), fmap(g), omap]),
+      f2: composeAll([omap, f, g])
+    })
+  )(idOf(fromCat), curry(fromCat.op)(x1), curry(fromCat.op(x2)))
 
-  /**
-   *
-   * @function module:fun-property.leftIdentity
-   *
-   * @param {*} x - input to test instance with
-   * @param {Object} instance - to test
-   * @param {Function} instance.op - (x, x) -> x
-   * @param {Function} instance.unit - () -> x
-   * @param {Function} instance.equal - (x, x) -> bool
-   *
-   * @return {Boolean} if (() <> x) = x
-   */
-  function leftIdentity (x, instance) {
-    return instance.equal(instance.op(instance.unit(), x), x)
-  }
+  /* exports */
+  const api = { functor, category, abelianGroup, group, inverse, leftInverse,
+    rightInverse, commutative, monoid, semigroup, identity, leftIdentity,
+    rightIdentity, closed, associative, idempotent, equalFor }
 
-  /**
-   *
-   * @function module:fun-property.rightIdentity
-   *
-   * @param {*} x - input to test instance with
-   * @param {Object} instance - to test
-   * @param {Function} instance.op - (x, x) -> x
-   * @param {Function} instance.unit - () -> x
-   * @param {Function} instance.equal - (x, x) -> bool
-   *
-   * @return {Boolean} if (x <> ()) = x
-   */
-  function rightIdentity (x, instance) {
-    return instance.equal(instance.op(x, instance.unit()), x)
-  }
+  const all = ps => ps.reduce(and, t)
 
-  /**
-   *
-   * @function module:fun-property.semigroup
-   *
-   * @param {Array} xs - 3 inputs to test instance with
-   * @param {Object} instance - to test
-   * @param {Function} instance.type - x -> bool
-   * @param {Function} instance.op - (x, x) -> x
-   * @param {Function} instance.equal - (x, x) -> bool
-   *
-   * @return {Boolean} if instance is associative and closed
-   */
-  function semigroup (xs, instance) {
-    return predicate.and(
-      closed.bind(null, xs.slice(0, 2)),
-      associative.bind(null, xs)
-    )(instance)
-  }
+  const has = (() => { // eslint-disable-line max-statements
+    const op = hasFields({ op: fun })
+    const unit = hasFields({ unit: fun })
+    const equal = hasFields({ equal: fun })
+    const inverse = hasFields({ equal: fun })
+    const omap = hasFields({ omap: fun })
+    const fmap = hasFields({ fmap: fun })
+    const type = hasFields({ type: fun })
+    const f = hasFields({ f: fun })
+    const f1 = hasFields({ f1: fun })
+    const f2 = hasFields({ f2: fun })
+    const fromCat = hasFields({ fromCat: all([op, unit, equal]) })
+    const toCat = hasFields({ toCat: all([op, unit, equal]) })
 
-  /**
-   *
-   * @function module:fun-property.associative
-   *
-   * @param {Array} xs - 3 inputs to test instance with
-   * @param {Object} instance - to test
-   * @param {Function} instance.op - (x, x) -> x
-   * @param {Function} instance.equal - (x, x) -> bool
-   *
-   * @return {Boolean} if ((x1 <> x2) <> x3) = (x1 <> (x2 <> x3))
-   */
-  function associative (xs, instance) {
-    return instance.equal(
-      instance.op(instance.op(xs[0], xs[1]), xs[2]),
-      instance.op(xs[0], instance.op(xs[1], xs[2]))
+    return { op, unit, equal, inverse, omap, fmap, type, f, f1, f2, fromCat,
+      toCat }
+  })()
+
+  const toBool = input => compose(inputs(input), output(bool))
+  const boolFromPair = (a, b) => toBool(tuple([a, b]))
+
+  const guards = {
+    functor: boolFromPair(
+      vector(3),
+      all([has.omap, has.fmap, has.fromCat, has.toCat])
+    ),
+    closed: boolFromPair(
+      vector(2),
+      all([has.type, has.op])
+    ),
+    category: boolFromPair(
+      vector(3),
+      all([has.op, has.unit, has.equal])
+    ),
+    abelianGroup: boolFromPair(
+      vector(3),
+      all([has.type, has.op, has.unit, has.inverse, has.equal])
+    ),
+    group: boolFromPair(
+      vector(3),
+      all([has.type, has.op, has.unit, has.inverse, has.equal])
+    ),
+    inverse: boolFromPair(
+      vector(1),
+      all([has.op, has.unit, has.inverse, has.equal])
+    ),
+    leftInverse: boolFromPair(
+      vector(1),
+      all([has.op, has.unit, has.inverse, has.equal])
+    ),
+    rightInverse: boolFromPair(
+      vector(1),
+      all([has.op, has.unit, has.inverse, has.equal])
+    ),
+    commutative: boolFromPair(
+      vector(2),
+      all([has.op, has.equal])
+    ),
+    monoid: boolFromPair(
+      vector(3),
+      all([has.type, has.op, has.unit, has.equal])
+    ),
+    semigroup: boolFromPair(
+      vector(3),
+      all([has.type, has.op, has.equal])
+    ),
+    associative: boolFromPair(
+      vector(3),
+      all([has.op, has.equal])
+    ),
+    identity: boolFromPair(
+      vector(1),
+      all([has.op, has.unit, has.equal])
+    ),
+    leftIdentity: boolFromPair(
+      vector(1),
+      all([has.op, has.unit, has.equal])
+    ),
+    rightIdentity: boolFromPair(
+      vector(1),
+      all([has.op, has.unit, has.equal])
+    ),
+    idempotent: boolFromPair(
+      vector(1),
+      all([has.f, has.equal])
+    ),
+    equalFor: compose(
+      inputs(([xs, instance]) =>
+        all([has.f1, has.f2, has.equal], instance) &&
+        vector(instance.f1.length, xs) &&
+        instance.f1.length === instance.f2.length
+      ),
+      output(bool)
     )
   }
 
-  /**
-   *
-   * @function module:fun-property.idempotent
-   *
-   * @param {*} x - input to test instance with
-   * @param {Object} instance - to test
-   * @param {Function} instance.f - x -> x
-   * @param {Function} instance.equal - (x, x) -> bool
-   *
-   * @return {Boolean} if f(x) = f(f(x))
-   */
-  function idempotent (x, instance) {
-    return equalFor(
-      instance.equal,
-      x,
-      instance.f,
-      fn.iterate(2, instance.f)
-    )
-  }
+  module.exports = map(curry, ap(guards, api))
 })()
 
