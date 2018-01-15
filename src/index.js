@@ -364,13 +364,9 @@
       vector(1),
       all([has.f, has.equal])
     ),
-    equalFor: compose(
-      inputs(([xs, instance]) =>
-        all([has.f1, has.f2, has.equal], instance) &&
-        vector(instance.f1.length, xs) &&
-        instance.f1.length === instance.f2.length
-      ),
-      output(bool)
+    equalFor: boolFromPair(
+      arrayOf(t),
+      all([has.f1, has.f2, has.equal])
     )
   }
 

@@ -32,14 +32,14 @@
 
   const integerMultiplication = {
     type: isInteger,
-    op: scalar.dot,
+    op: scalar.mul,
     equal: scalar.equal,
     unit: fn.k(1)
   }
 
   const integerAddition = {
     type: isInteger,
-    op: scalar.sum,
+    op: scalar.add,
     inverse: scalar.neg,
     equal: scalar.equal,
     unit: fn.k(0)
@@ -65,12 +65,12 @@
   }
 
   const mul1 = {
-    f: scalar.dot(1),
+    f: scalar.mul(1),
     equal: predicate.equal
   }
 
   const add0 = {
-    f: scalar.sum(0),
+    f: scalar.add(0),
     equal: predicate.equal
   }
 
@@ -78,7 +78,7 @@
 
   const addSelfMul2 = {
     f1: addSelf,
-    f2: scalar.dot(2),
+    f2: scalar.mul(2),
     equal: predicate.equal
   }
 
@@ -98,13 +98,13 @@
   )
 
   const randIntFun = () => generate.fn(
-    scalar.dot(generate.integer(-200, 200, Math.random())),
+    scalar.mul(generate.integer(-200, 200, Math.random())),
     generate.integer(-100, 100),
     fn.composeAll([
       scalar.abs,
       scalar.mod(1),
-      scalar.dot(Math.random()),
-      scalar.sum
+      scalar.mul(Math.random()),
+      scalar.add
     ]),
     Math.random()
   )
