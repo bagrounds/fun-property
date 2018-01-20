@@ -1,6 +1,6 @@
 {
   "name": "fun-property",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "Functions for determining properties of modules",
   "main": "src/index.js",
   "browser": "dist/bundle.js",
