@@ -10,7 +10,7 @@
   const { arrayOf, hasFields, vector, fun, bool, tuple } = require('fun-type')
   const { map, ap } = require('fun-object')
   const { inputs, output } = require('guarded')
-  const { and, t } = require('fun-predicate')
+  const { all, and, t } = require('fun-predicate')
 
   const idOf = ({op, unit}) => curry(op)(unit())
 
@@ -275,8 +275,6 @@
   const api = { functor, category, abelianGroup, group, inverse, leftInverse,
     rightInverse, commutative, monoid, semigroup, identity, leftIdentity,
     rightIdentity, closed, associative, idempotent, equalFor }
-
-  const all = ps => ps.reduce(and, t)
 
   const has = (() => { // eslint-disable-line max-statements
     const op = hasFields({ op: fun })
