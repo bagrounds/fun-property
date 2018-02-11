@@ -8,7 +8,8 @@
   const { ap, get } = require('fun-object')
   const { sync } = require('fun-test')
   const arrange = require('fun-arrange')
-  const { map, concat, empty, of, index } = require('fun-array')
+  const { map, concat, empty, of, index, flatMap, iterateN, repeat } =
+    require('fun-array')
   const generate = require('fun-generator')
   const { arrayOf, num } = require('fun-type')
 
@@ -43,6 +44,7 @@
   }
 
   const arrayFunctor = { omap: of, fmap: map, idS: id, equalT: equal }
+  const arrayMonad = { chain: flatMap, of, idS: id, equalT: equal }
 
   const integerSubtraction = { type: isInteger, op: sub, unit: k(0), equal }
 
@@ -67,6 +69,8 @@
     map(Math.random, index(n))
   )
 
+  const randomSmallNat = () => generate.integer(1, 10, Math.random())
+
   const randIntFun = () => generate.fn(
     mul(generate.integer(-200, 200, Math.random())),
     generate.integer(-100, 100),
@@ -78,6 +82,11 @@
     ap({ predicate: equal, contra: get }),
     arrange({ inputs: 0, predicate: 1, contra: 2 })
   ), [
+    [
+      [[randomSmallNat(), index, iterateN(mul(2), 3), repeat(2)], arrayMonad],
+      true,
+      'monad'
+    ],
     [
       [
         [

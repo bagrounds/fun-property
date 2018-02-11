@@ -6,7 +6,7 @@
   'use strict'
 
   /* imports */
-  const { apply, lift, curry, compose, composeAll } = require('fun-function')
+  const { apply, lift, curry, compose, composeAll, k } = require('fun-function')
   const { arrayOf, hasFields, vector, fun, bool, tuple } = require('fun-type')
   const { map, ap } = require('fun-object')
   const { inputs, output } = require('guarded')
@@ -269,10 +269,31 @@
       f2: composeAll([fmap(f), fmap(g), omap])
     }))(curry(fmap))
 
+  /**
+   *
+   * @function module:fun-property.monad
+   *
+   * @param {Array} xs - [a, c -> M d, b -> M c, a -> M b]
+   * @param {Object} instance - to test
+   * @param {Function} instance.of - a -> M a
+   * @param {Function} instance.chain - (a -> M b, M a) -> M b
+   * @param {Object} instance.idS - a -> a
+   * @param {Object} instance.equalT - (M, M) -> Bool
+   *
+   * @return {Boolean} instance is a monoid over kleisli arrows
+   */
+  const monad = ([x, f, g, h], {chain, of, idS, equalT}) => monoid(
+    [f, g, h], {
+      op: (f1, f2) => compose(curry(chain)(f2), f1),
+      unit: k(of),
+      type: fun,
+      equal: (f1, f2) => equalFor([x], { f1, f2, equal: equalT })
+    })
+
   /* exports */
   const api = { functor, category, abelianGroup, group, inverse, leftInverse,
     rightInverse, commutative, monoid, semigroup, identity, leftIdentity,
-    rightIdentity, closed, associative, idempotent, equalFor }
+    rightIdentity, closed, associative, idempotent, equalFor, monad }
 
   const has = (() => { // eslint-disable-line max-statements
     const op = hasFields({ op: fun })
@@ -296,6 +317,10 @@
     functor: boolFromPair(
       tuple([t, fun, fun]),
       hasFields({ omap: fun, fmap: fun, idS: fun, equalT: fun })
+    ),
+    monad: boolFromPair(
+      tuple([t, fun, fun, fun]),
+      hasFields({ chain: fun, of: fun, idS: fun, equalT: fun })
     ),
     closed: boolFromPair(
       vector(2),
