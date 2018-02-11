@@ -277,23 +277,42 @@
    * @param {Object} instance - to test
    * @param {Function} instance.of - a -> M a
    * @param {Function} instance.chain - (a -> M b, M a) -> M b
-   * @param {Object} instance.idS - a -> a
-   * @param {Object} instance.equalT - (M, M) -> Bool
+   * @param {Object} instance.equal - (M, M) -> Bool
    *
    * @return {Boolean} instance is a monoid over kleisli arrows
    */
-  const monad = ([x, f, g, h], {chain, of, idS, equalT}) => monoid(
+  const monad = ([x, f, g, h], {chain, of, equal}) => monoid(
     [f, g, h], {
       op: (f1, f2) => compose(curry(chain)(f2), f1),
       unit: k(of),
       type: fun,
-      equal: (f1, f2) => equalFor([x], { f1, f2, equal: equalT })
+      equal: (f1, f2) => equalFor([x], { f1, f2, equal })
+    })
+
+  /**
+   *
+   * @function module:fun-property.comonad
+   *
+   * @param {Array} xs - [W a, W c -> d, W b -> c, W a -> b]
+   * @param {Object} instance - to test
+   * @param {Function} instance.extract - W a -> a
+   * @param {Function} instance.extend - (W a -> b, W a) -> W b
+   * @param {Object} instance.equal - (a, a) -> Bool
+   *
+   * @return {Boolean} instance is a monoid over kleisli arrows
+   */
+  const comonad = ([x, f, g, h], {extend, extract, equal}) => monoid(
+    [f, g, h], {
+      op: (f1, f2) => compose(f2, curry(extend)(f1)),
+      unit: k(extract),
+      type: fun,
+      equal: (f1, f2) => equalFor([x], { f1, f2, equal })
     })
 
   /* exports */
   const api = { functor, category, abelianGroup, group, inverse, leftInverse,
     rightInverse, commutative, monoid, semigroup, identity, leftIdentity,
-    rightIdentity, closed, associative, idempotent, equalFor, monad }
+    rightIdentity, closed, associative, idempotent, equalFor, monad, comonad }
 
   const has = (() => { // eslint-disable-line max-statements
     const op = hasFields({ op: fun })
@@ -320,7 +339,11 @@
     ),
     monad: boolFromPair(
       tuple([t, fun, fun, fun]),
-      hasFields({ chain: fun, of: fun, idS: fun, equalT: fun })
+      hasFields({ chain: fun, of: fun, equal: fun })
+    ),
+    comonad: boolFromPair(
+      tuple([t, fun, fun, fun]),
+      hasFields({ extend: fun, extract: fun, equal: fun })
     ),
     closed: boolFromPair(
       vector(2),

@@ -2,8 +2,8 @@
   'use strict'
 
   /* imports */
-  const { add, sub, mul, neg, abs, mod } = require('fun-scalar')
-  const { k, id, compose, composeAll } = require('fun-function')
+  const { min, add, sub, mul, neg, abs, mod } = require('fun-scalar')
+  const { k, id, compose, composeAll, argsToArray } = require('fun-function')
   const { equalDeep: equal } = require('fun-predicate')
   const { ap, get } = require('fun-object')
   const { sync } = require('fun-test')
@@ -44,7 +44,7 @@
   }
 
   const arrayFunctor = { omap: of, fmap: map, idS: id, equalT: equal }
-  const arrayMonad = { chain: flatMap, of, idS: id, equalT: equal }
+  const arrayMonad = { chain: flatMap, of, equal }
 
   const integerSubtraction = { type: isInteger, op: sub, unit: k(0), equal }
 
@@ -78,10 +78,25 @@
     Math.random()
   )
 
+  const productComonad = (() => {
+    const map = (f, [e, a]) => [e, f(a)]
+    const extract = ([e, a]) => a
+    const duplicate = ([e, a]) => [e, [e, a]]
+    const extend = (f, w) => map(f, duplicate(w))
+    const bird = (f, g) => compose(g, extend(f))
+
+    return { map, extract, duplicate, extend, bird, equal }
+  })()
+
   const equalityTests = map(compose(
     ap({ predicate: equal, contra: get }),
     arrange({ inputs: 0, predicate: 1, contra: 2 })
   ), [
+    [
+      [[randomInts(2), ...map(argsToArray, [add, mul, min])], productComonad],
+      true,
+      'comonad'
+    ],
     [
       [[randomSmallNat(), index, iterateN(mul(2), 3), repeat(2)], arrayMonad],
       true,
