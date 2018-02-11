@@ -2,121 +2,101 @@
   'use strict'
 
   /* imports */
-  const scalar = require('fun-scalar')
-  const fn = require('fun-function')
-  const predicate = require('fun-predicate')
-  const object = require('fun-object')
-  const funTest = require('fun-test')
+  const { add, sub, mul, neg, abs, mod } = require('fun-scalar')
+  const { k, id, compose, composeAll } = require('fun-function')
+  const { equalDeep: equal } = require('fun-predicate')
+  const { ap, get } = require('fun-object')
+  const { sync } = require('fun-test')
   const arrange = require('fun-arrange')
-  const array = require('fun-array')
+  const { map, concat, empty, of, index } = require('fun-array')
   const generate = require('fun-generator')
-  const type = require('fun-type')
+  const { arrayOf, num } = require('fun-type')
 
-  const arrayMonoid = {
-    type: type.arrayOf(type.num),
-    op: array.concat,
-    unit: array.empty,
-    equal: array.equal(scalar.equal)
-  }
+  const arrayMonoid = { type: arrayOf(num), op: concat, unit: empty, equal }
 
   const intFunComposition = {
-    op: fn.compose,
-    unit: fn.k(fn.id),
+    op: compose,
+    unit: k(id),
     equal: (f, g) => {
       const x = generate.integer(-100, 100, Math.random())
       return f(x) === g(x)
     }
   }
 
-  const isInteger = a => type.num(a) && Math.floor(a) === a
+  const isInteger = a => num(a) && Math.floor(a) === a
 
-  const integerMultiplication = {
-    type: isInteger,
-    op: scalar.mul,
-    equal: scalar.equal,
-    unit: fn.k(1)
-  }
+  const integerMultiplication = { type: isInteger, op: mul, unit: k(1), equal }
 
   const integerAddition = {
     type: isInteger,
-    op: scalar.add,
-    inverse: scalar.neg,
-    equal: scalar.equal,
-    unit: fn.k(0)
+    op: add,
+    inverse: neg,
+    equal: equal,
+    unit: k(0)
   }
 
-  const arrayConcatToIntAddFunctor = {
-    omap: array.fold(integerAddition.op, integerAddition.unit()),
-    fmap: fn.compose(array.fold(integerAddition.op, integerAddition.unit())),
-    fromCat: arrayMonoid,
-    toCat: integerAddition
+  const maybeFunctor = {
+    omap: x => x == null ? { none: true } : { some: x },
+    fmap: (f, m) => m.none === true ? m : ap({ some: f }, m),
+    idS: id,
+    equalT: equal
   }
 
-  const integerSubtraction = {
-    type: isInteger,
-    op: scalar.sub,
-    equal: predicate.equal,
-    unit: fn.k(0)
-  }
+  const arrayFunctor = { omap: of, fmap: map, idS: id, equalT: equal }
 
-  const identityFun = {
-    f: fn.id,
-    equal: predicate.equal
-  }
+  const integerSubtraction = { type: isInteger, op: sub, unit: k(0), equal }
 
-  const mul1 = {
-    f: scalar.mul(1),
-    equal: predicate.equal
-  }
+  const identityFun = { f: id, equal }
 
-  const add0 = {
-    f: scalar.add(0),
-    equal: predicate.equal
-  }
-
+  const mul1 = { f: mul(1), equal }
+  const add0 = { f: add(0), equal }
   const addSelf = x => x + x
-
-  const addSelfMul2 = {
-    f1: addSelf,
-    f2: scalar.mul(2),
-    equal: predicate.equal
-  }
+  const addSelfMul2 = { f1: addSelf, f2: mul(2), equal }
 
   const randomIntArrays = (max, n) => generate.arrayOf(
     generate.arrayOf(generate.integer(-100, 100)),
-    array.index(n)
-      .map(fn.composeAll([
-        array.map(Math.random),
-        fn.compose(array.index, generate.integer(1, max)),
-        Math.random
-      ]))
+    map(composeAll([
+      map(Math.random),
+      compose(index, generate.integer(1, max)),
+      Math.random
+    ]), index(n))
   )
 
-  const randomInts = n => array.map(
+  const randomInts = n => map(
     generate.integer(-100, 100),
-    array.map(Math.random, array.index(n))
+    map(Math.random, index(n))
   )
 
   const randIntFun = () => generate.fn(
-    scalar.mul(generate.integer(-200, 200, Math.random())),
+    mul(generate.integer(-200, 200, Math.random())),
     generate.integer(-100, 100),
-    fn.composeAll([
-      scalar.abs,
-      scalar.mod(1),
-      scalar.mul(Math.random()),
-      scalar.add
-    ]),
+    composeAll([abs, mod(1), mul(Math.random()), add]),
     Math.random()
   )
 
-  const equalityTests = [
+  const equalityTests = map(compose(
+    ap({ predicate: equal, contra: get }),
+    arrange({ inputs: 0, predicate: 1, contra: 2 })
+  ), [
     [
-      [randomIntArrays(10, 3), arrayConcatToIntAddFunctor],
+      [
+        [
+          generate.member([undefined, null, Math.random()], Math.random()),
+          randIntFun(),
+          randIntFun()
+        ],
+        maybeFunctor
+      ],
       true,
       'functor'
     ],
     [
-      [array.map(randIntFun, array.index(3)), intFunComposition],
+      [[...randomInts(1), randIntFun(), randIntFun()], arrayFunctor],
+      true,
+      'functor'
+    ],
+    [
+      [map(randIntFun, index(3)), intFunComposition],
       true,
       'category'
     ],
@@ -139,13 +119,9 @@
     [[randomInts(1), mul1], true, 'idempotent'],
     [[randomInts(1), add0], true, 'idempotent'],
     [[randomInts(1), addSelfMul2], true, 'equalFor']
-  ].map(arrange({ inputs: 0, predicate: 1, contra: 2 }))
-    .map(object.ap({
-      predicate: predicate.equalDeep,
-      contra: object.get
-    }))
+  ])
 
   /* exports */
-  module.exports = equalityTests.map(funTest.sync)
+  module.exports = map(sync, equalityTests)
 })()
 

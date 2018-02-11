@@ -12,8 +12,6 @@
   const { inputs, output } = require('guarded')
   const { all, and, t } = require('fun-predicate')
 
-  const idOf = ({op, unit}) => curry(op)(unit())
-
   /**
    *
    * @function module:fun-property.equalFor
@@ -250,26 +248,26 @@
    *
    * @function module:fun-property.functor
    *
-   * @param {Array} xs - inputs to test instance with
+   * @param {Array} xs - [a, b -> c, a -> b]
    * @param {Object} instance - to test
-   * @param {Function} instance.omap - maps objects
-   * @param {Function} instance.fmap - maps functions
-   * @param {Object} instance.fromCat - source category
-   * @param {Object} instance.toCat - destination category
+   * @param {Function} instance.omap - a -> F a
+   * @param {Function} instance.fmap - (a -> b, F a) -> F b
+   * @param {Object} instance.idS - a -> a
+   * @param {Object} instance.equalT - (F, F) -> Bool
    *
-   * @return {Boolean} if i is a functor mapping fromCat -> toCat
+   * @return {Boolean} if (fmap f . g = fmap f . fmap g) and (fmap idS  = idT)
    */
-  const functor = ([x0, x1, x2], {omap, fmap, fromCat, toCat}) => ((id, f, g) =>
-    equalFor([x0], {equal: toCat.equal,
-      f1: compose(fmap(id), omap),
-      f2: compose(omap, id)
+  const functor = ([x, f, g], {omap, fmap, idS, equalT}) => (fmap =>
+    equalFor([x], {
+      equal: equalT,
+      f1: compose(fmap(idS), omap),
+      f2: compose(omap, idS)
     }) &&
-    equalFor([x0], {
-      equal: toCat.equal,
-      f1: composeAll([fmap(f), fmap(g), omap]),
-      f2: composeAll([omap, f, g])
-    })
-  )(idOf(fromCat), curry(fromCat.op)(x1), curry(fromCat.op(x2)))
+    equalFor([x], {
+      equal: equalT,
+      f1: compose(fmap(compose(f, g)), omap),
+      f2: composeAll([fmap(f), fmap(g), omap])
+    }))(curry(fmap))
 
   /* exports */
   const api = { functor, category, abelianGroup, group, inverse, leftInverse,
@@ -287,11 +285,8 @@
     const f = hasFields({ f: fun })
     const f1 = hasFields({ f1: fun })
     const f2 = hasFields({ f2: fun })
-    const fromCat = hasFields({ fromCat: all([op, unit, equal]) })
-    const toCat = hasFields({ toCat: all([op, unit, equal]) })
 
-    return { op, unit, equal, inverse, omap, fmap, type, f, f1, f2, fromCat,
-      toCat }
+    return { op, unit, equal, inverse, omap, fmap, type, f, f1, f2 }
   })()
 
   const toBool = input => compose(inputs(input), output(bool))
@@ -299,8 +294,8 @@
 
   const guards = {
     functor: boolFromPair(
-      vector(3),
-      all([has.omap, has.fmap, has.fromCat, has.toCat])
+      tuple([t, fun, fun]),
+      hasFields({ omap: fun, fmap: fun, idS: fun, equalT: fun })
     ),
     closed: boolFromPair(
       vector(2),
