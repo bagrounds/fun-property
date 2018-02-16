@@ -299,7 +299,7 @@
    * @param {Function} instance.extend - (W a -> b, W a) -> W b
    * @param {Object} instance.equal - (a, a) -> Bool
    *
-   * @return {Boolean} instance is a monoid over kleisli arrows
+   * @return {Boolean} instance is a monoid over cokleisli arrows
    */
   const comonad = ([x, f, g, h], {extend, extract, equal}) => monoid(
     [f, g, h], {
