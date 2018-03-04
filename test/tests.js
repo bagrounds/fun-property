@@ -2,10 +2,10 @@
   'use strict'
 
   /* imports */
-  const { min, add, sub, mul, neg, abs, mod } = require('fun-scalar')
+  const { gt, lt, min, add, sub, mul, neg, abs, mod } = require('fun-scalar')
   const { k, id, compose, composeAll, argsToArray } = require('fun-function')
   const { equalDeep: equal } = require('fun-predicate')
-  const { ap, get } = require('fun-object')
+  const { ap, get, set } = require('fun-object')
   const { sync } = require('fun-test')
   const arrange = require('fun-arrange')
   const { map, concat, empty, of, index, flatMap, iterateN, repeat } =
@@ -69,6 +69,11 @@
     map(Math.random, index(n))
   )
 
+  const randomIntsInRange = (min, max) => n => map(
+    generate.integer(min, max),
+    map(Math.random, index(n))
+  )
+
   const randomSmallNat = () => generate.integer(1, 10, Math.random())
 
   const randIntFun = () => generate.fn(
@@ -88,10 +93,37 @@
     return { map, extract, duplicate, extend, bird, equal }
   })()
 
+  const bLogic = (() => {
+    const and = (a, b) => a && b
+    const or = (a, b) => a || b
+    const not = a => !a
+    const t = equal(true)
+
+    return { and, or, not, equal, t }
+  })()
+
+  const equalModN = n => (a, b) => Number.isInteger((a - b) / n)
+
   const equalityTests = map(compose(
     ap({ predicate: equal, contra: get }),
     arrange({ inputs: 0, predicate: 1, contra: 2 })
   ), [
+    [[[-3, 0, 3], set('f', equalModN(3), bLogic)], true, 'equivalence'],
+    [[[-2, 1, 4], set('f', equalModN(3), bLogic)], true, 'equivalence'],
+    [[[-1, 2, 5], set('f', equalModN(3), bLogic)], true, 'equivalence'],
+    [[[0, 3, 6], set('f', equalModN(3), bLogic)], true, 'equivalence'],
+    [[[1, 4, 7], set('f', equalModN(3), bLogic)], true, 'equivalence'],
+    [[[2, 5, 8], set('f', equalModN(3), bLogic)], true, 'equivalence'],
+    [
+      [randomIntsInRange(0, 6)(3), set('f', equalModN(3), bLogic)],
+      true,
+      'equivalence'
+    ],
+    [[randomInts(3), set('f', equal, bLogic)], true, 'transitive'],
+    [[randomInts(3), set('f', lt, bLogic)], true, 'transitive'],
+    [[randomInts(3), set('f', gt, bLogic)], true, 'transitive'],
+    [[randomInts(2), set('f', equal, bLogic)], true, 'symmetric'],
+    [[randomInts(1), set('f', equal, bLogic)], true, 'reflexive'],
     [
       [[randomInts(2), ...map(argsToArray, [add, mul, min])], productComonad],
       true,

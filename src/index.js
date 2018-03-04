@@ -14,6 +14,69 @@
 
   /**
    *
+   * @function module:fun-property.reflexive
+   *
+   * @param {Array} xs - inputs to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.f - (a, b) -> c
+   * @param {Function} instance.t - c -> bool
+   *
+   * @return {Boolean} if f(x, x) is true
+   */
+  const reflexive = ([x], { f, t }) => t(f(x, x))
+
+  /**
+   *
+   * @function module:fun-property.symmetric
+   *
+   * @param {Array} xs - inputs to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.f - (a, b) -> c
+   * @param {Function} instance.equal - (a, b) -> bool
+   *
+   * @return {Boolean} if f(a, b) = f(b, a)
+   */
+  const symmetric = ([a, b], { equal, f }) => equal(f(a, b), f(b, a))
+
+  /**
+   *
+   * @function module:fun-property.transitive
+   *
+   * @param {Array} xs - inputs to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.f - (a, b) -> c
+   * @param {Function} instance.and - (a, b) -> c
+   * @param {Function} instance.or - (a, b) -> c
+   * @param {Function} instance.not - a -> b
+   * @param {Function} instance.t - c -> bool
+   *
+   * @return {Boolean} if f(a, b) and f(b, c) implies f(a, c)
+   */
+  const transitive = ([a, b, c], { f, not, and, or, t }) =>
+    t(or(not(and(f(a, b), f(b, c))), f(a, c)))
+
+  /**
+   *
+   * @function module:fun-property.equivalent
+   *
+   * @param {Array} xs - inputs to test instance with
+   * @param {Object} instance - to test
+   * @param {Function} instance.f - (a, b) -> c
+   * @param {Function} instance.and - (a, b) -> c
+   * @param {Function} instance.or - (a, b) -> c
+   * @param {Function} instance.not - a -> b
+   * @param {Function} instance.equal - (a, b) -> bool
+   * @param {Function} instance.t - a -> bool
+   *
+   * @return {Boolean} if f induces an equivalence relation over xs
+   */
+  const equivalence = ([a, b, c], { and, or, not, equal, t, f }) =>
+    reflexive([a], { t, f }) &&
+    symmetric([a, b], { equal, f }) &&
+    transitive([a, b, c], { and, or, not, f, t })
+
+  /**
+   *
    * @function module:fun-property.equalFor
    *
    * @param {Array} xs - inputs to test instance with
@@ -312,7 +375,8 @@
   /* exports */
   const api = { functor, category, abelianGroup, group, inverse, leftInverse,
     rightInverse, commutative, monoid, semigroup, identity, leftIdentity,
-    rightIdentity, closed, associative, idempotent, equalFor, monad, comonad }
+    rightIdentity, closed, associative, idempotent, equalFor, monad, comonad,
+    reflexive, transitive, symmetric, equivalence }
 
   const has = (() => { // eslint-disable-line max-statements
     const op = hasFields({ op: fun })
@@ -408,6 +472,22 @@
     equalFor: boolFromPair(
       arrayOf(t),
       all([has.f1, has.f2, has.equal])
+    ),
+    reflexive: boolFromPair(
+      vector(1),
+      hasFields({ f: fun, t: fun })
+    ),
+    symmetric: boolFromPair(
+      vector(2),
+      hasFields({ f: fun, equal: fun })
+    ),
+    transitive: boolFromPair(
+      vector(3),
+      hasFields({ f: fun, or: fun, and: fun, not: fun, t: fun })
+    ),
+    equivalence: boolFromPair(
+      vector(3),
+      hasFields({ f: fun, or: fun, and: fun, not: fun, t: fun, equal: fun })
     )
   }
 
